@@ -129,19 +129,14 @@ namespace WastedgeApi
             return (string)this[index];
         }
 
-        public DateTime GetDate(int index)
-        {
-            return Api.ParseDate(GetString(index)).Value;
-        }
-
         public DateTime GetDateTime(int index)
         {
-            return Api.ParseDateTime(GetString(index)).Value;
+            return (DateTime)this[index];
         }
 
         public DateTimeOffset GetDateTimeOffset(int index)
         {
-            return Api.ParseDateTimeOffset(GetString(index)).Value;
+            return (DateTimeOffset)this[index];
         }
 
         public decimal GetDecimal(int index)
