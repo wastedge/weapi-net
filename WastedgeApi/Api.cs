@@ -108,12 +108,7 @@ namespace WastedgeApi
 
         public ResultSet Query(EntitySchema entity, IEnumerable<Filter> filters, int? offset, int? count)
         {
-            return Query(entity, filters, offset, count, OutputFormat.Verbose);
-        }
-
-        public ResultSet Query(EntitySchema entity, IEnumerable<Filter> filters, int? offset, int? count, OutputFormat outputFormat)
-        {
-            var parameters = BuildQueryParameters(filters, offset, count, outputFormat);
+            var parameters = BuildQueryParameters(filters, offset, count, OutputFormat.Compact);
 
             return new ResultSet(entity, (JObject)ExecuteJsonRequest(entity.Name, parameters.Parameters, "GET", null), new ApiPager(this, entity, parameters.BaseParameters));
         }
@@ -125,12 +120,7 @@ namespace WastedgeApi
 
         public async Task<ResultSet> QueryAsync(EntitySchema entity, IEnumerable<Filter> filters, int? offset, int? count)
         {
-            return await QueryAsync(entity, filters, offset, count, OutputFormat.Verbose);
-        }
-
-        public async Task<ResultSet> QueryAsync(EntitySchema entity, IEnumerable<Filter> filters, int? offset, int? count, OutputFormat outputFormat)
-        {
-            var parameters = BuildQueryParameters(filters, offset, count, outputFormat);
+            var parameters = BuildQueryParameters(filters, offset, count, OutputFormat.Compact);
 
             return new ResultSet(entity, (JObject)await ExecuteJsonRequestAsync(entity.Name, parameters.Parameters, "GET", null), new ApiPager(this, entity, parameters.BaseParameters));
         }
@@ -397,11 +387,23 @@ namespace WastedgeApi
                 }
             }
 
-            using (var response = webRequest.GetResponse())
-            using (var stream = response.GetResponseStream())
-            using (var reader = new StreamReader(stream))
+            try
             {
-                return ParseJson(reader.ReadToEnd());
+                using (var response = webRequest.GetResponse())
+                using (var stream = GetResponseStream(response))
+                using (var reader = new StreamReader(stream))
+                {
+                    return ParseJson(reader.ReadToEnd());
+                }
+            }
+            catch (WebException ex)
+            {
+                using (var response = ex.Response)
+                using (var stream = GetResponseStream(response))
+                using (var reader = new StreamReader(stream))
+                {
+                    throw new ApiException(reader.ReadToEnd());
+                }
             }
         }
 
@@ -478,7 +480,7 @@ namespace WastedgeApi
 
             url.Append("api/rest");
             if (!String.IsNullOrEmpty(path))
-                    url.Append('/').Append(path);
+                url.Append('/').Append(path);
 
             // This is a work around because webspeed doesn't accept PUT or DELETE.
 
@@ -518,7 +520,7 @@ namespace WastedgeApi
             }
 
             using (var response = webRequest.GetResponse())
-            using (var stream = response.GetResponseStream())
+            using (var stream = GetResponseStream(response))
             using (var reader = new StreamReader(stream))
             {
                 return reader.ReadToEnd();
