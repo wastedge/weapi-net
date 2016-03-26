@@ -9,7 +9,7 @@ namespace WastedgeApi
     public class EntityIdField : EntityPhysicalField
     {
         public EntityIdField()
-            : base("$id", null, EntityDataType.String, true)
+            : base("$id", null, EntityDataType.String, null, true)
         {
         }
 

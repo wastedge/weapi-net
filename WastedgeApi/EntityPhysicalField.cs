@@ -9,8 +9,8 @@ namespace WastedgeApi
     {
         public bool Mandatory { get; }
 
-        protected EntityPhysicalField(string name, string comments, EntityDataType dataType, bool mandatory)
-            : base(name, comments, dataType)
+        protected EntityPhysicalField(string name, string comments, EntityDataType dataType, int? decimals, bool mandatory)
+            : base(name, comments, dataType, decimals)
         {
             Mandatory = mandatory;
         }

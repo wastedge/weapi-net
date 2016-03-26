@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
-using SystemEx;
 using Newtonsoft.Json.Linq;
 
 namespace WastedgeApi
@@ -34,8 +33,10 @@ namespace WastedgeApi
 
             members.Add(new EntityIdField());
 
-            foreach (var field in ((JObject)schema["fields"]))
+            foreach (var field in (JObject)schema["fields"])
             {
+                int? decimals = field.Value["decimals"] != null ? (int?)(long)field.Value["decimals"] : null;
+
                 switch ((string)field.Value["type"])
                 {
                     case "field":
@@ -43,6 +44,7 @@ namespace WastedgeApi
                             field.Key,
                             (string)field.Value["comments"],
                             ParseDataType((string)field.Value["data_type"]),
+                            decimals,
                             (bool)field.Value["mandatory"]
                         ));
                         break;
@@ -53,6 +55,7 @@ namespace WastedgeApi
                             (string)field.Value["comments"],
                             (string)field.Value["link_table"],
                             ParseDataType((string)field.Value["data_type"]),
+                            decimals,
                             (bool)field.Value["mandatory"]
                         ));
                         break;
@@ -70,7 +73,8 @@ namespace WastedgeApi
                         members.Add(new EntityCalculatedField(
                             field.Key,
                             (string)field.Value["comments"],
-                            ParseDataType((string)field.Value["data_type"])
+                            ParseDataType((string)field.Value["data_type"]),
+                            decimals
                         ));
                         break;
                 }
@@ -126,7 +130,7 @@ namespace WastedgeApi
             }
         }
 
-        private class MemberCollection : SystemEx.KeyedCollection<string, EntityMember>
+        private class MemberCollection : KeyedCollection<string, EntityMember>
         {
             protected override string GetKeyForItem(EntityMember item)
             {

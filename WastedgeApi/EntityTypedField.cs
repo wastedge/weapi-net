@@ -9,11 +9,13 @@ namespace WastedgeApi
     public abstract class EntityTypedField : EntityMember
     {
         public EntityDataType DataType { get; }
+        public int? Decimals { get; }
 
-        protected EntityTypedField(string name, string comments, EntityDataType dataType)
+        protected EntityTypedField(string name, string comments, EntityDataType dataType, int? decimals)
             : base(name, comments)
         {
             DataType = dataType;
+            Decimals = decimals;
         }
     }
 }

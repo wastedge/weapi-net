@@ -9,8 +9,8 @@ namespace WastedgeApi
     {
         public override EntityMemberType Type => EntityMemberType.Field;
 
-        public EntityField(string name, string comments, EntityDataType dataType, bool mandatory)
-            : base(name, comments, dataType, mandatory)
+        public EntityField(string name, string comments, EntityDataType dataType, int? decimals, bool mandatory)
+            : base(name, comments, dataType, decimals, mandatory)
         {
         }
     }
