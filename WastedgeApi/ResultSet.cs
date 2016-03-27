@@ -70,13 +70,13 @@ namespace WastedgeApi
                     switch (_fields[j].DataType)
                     {
                         case EntityDataType.Date:
-                            value = Api.ParseDate((string)value);
+                            value = ApiUtils.ParseDate((string)value);
                             break;
                         case EntityDataType.DateTime:
-                            value = Api.ParseDateTime((string)value);
+                            value = ApiUtils.ParseDateTime((string)value);
                             break;
                         case EntityDataType.DateTimeTz:
-                            value = Api.ParseDateTimeOffset((string)value);
+                            value = ApiUtils.ParseDateTimeOffset((string)value);
                             break;
                     }
                     row[j] = value;

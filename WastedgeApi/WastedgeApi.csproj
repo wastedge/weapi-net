@@ -52,6 +52,7 @@
     <Compile Include="ApiCredentials.cs" />
     <Compile Include="ApiException.cs" />
     <Compile Include="ApiPager.cs" />
+    <Compile Include="ApiUtils.cs" />
     <Compile Include="EntityDataType.cs" />
     <Compile Include="EntityField.cs" />
     <Compile Include="EntityForeign.cs" />

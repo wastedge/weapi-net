@@ -14,34 +14,6 @@ namespace WastedgeApi
 {
     public class Api
     {
-        private const string DateFormat = "yyyy-MM-dd";
-        private const string DateTimeFormat = DateFormat + "'T'HH:mm:ss.fff";
-        private const string DateTimeTzFormat = DateTimeFormat + "zzz";
-
-        internal static DateTime? ParseDate(string value)
-        {
-            if (value == null)
-                return null;
-
-            return DateTime.ParseExact(value, DateFormat, CultureInfo.InvariantCulture);
-        }
-
-        internal static DateTime? ParseDateTime(string value)
-        {
-            if (value == null)
-                return null;
-
-            return DateTime.ParseExact(value, DateTimeFormat, CultureInfo.InvariantCulture);
-        }
-
-        internal static DateTimeOffset? ParseDateTimeOffset(string value)
-        {
-            if (value == null)
-                return null;
-
-            return DateTimeOffset.ParseExact(value, DateTimeTzFormat, CultureInfo.InvariantCulture);
-        }
-
         private Schema _schema;
         private readonly Dictionary<string, EntitySchema> _entities = new Dictionary<string, EntitySchema>();
 
@@ -336,11 +308,11 @@ namespace WastedgeApi
                 switch (dataType)
                 {
                     case EntityDataType.Date:
-                        return ((DateTime)value).ToString(DateFormat);
+                        return ApiUtils.PrintDate((DateTime)value);
                     case EntityDataType.DateTime:
-                        return ((DateTime)value).ToString(DateTimeFormat);
+                        return ApiUtils.PrintDateTime((DateTime)value);
                     case EntityDataType.DateTimeTz:
-                        return ((DateTime)value).ToString(DateTimeTzFormat);
+                        return ApiUtils.PrintDateTimeOffset((DateTime)value);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(value));
                 }
@@ -350,11 +322,11 @@ namespace WastedgeApi
                 switch (dataType)
                 {
                     case EntityDataType.Date:
-                        return ((DateTimeOffset)value).ToString(DateFormat);
+                        return ApiUtils.PrintDate((DateTimeOffset)value);
                     case EntityDataType.DateTime:
-                        return ((DateTimeOffset)value).ToString(DateTimeFormat);
+                        return ApiUtils.PrintDateTime((DateTimeOffset)value);
                     case EntityDataType.DateTimeTz:
-                        return ((DateTimeOffset)value).ToString(DateTimeTzFormat);
+                        return ApiUtils.PrintDateTimeOffset((DateTimeOffset)value);
                     default:
                         throw new ArgumentOutOfRangeException(nameof(value));
                 }
