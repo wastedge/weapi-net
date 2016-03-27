@@ -3,11 +3,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("WastedgeApi")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Library for working with the Wastedge API")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Wastedge International B.V.")]
 [assembly: AssemblyProduct("WastedgeApi")]
-[assembly: AssemblyCopyright("Copyright ©  2016")]
+[assembly: AssemblyCopyright("Wastedge International B.V. © 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
