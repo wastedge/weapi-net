@@ -30,7 +30,7 @@ namespace WastedgeApi
         public Schema GetSchema()
         {
             if (_schema == null)
-                _schema = new Schema((JObject)ExecuteJsonRequest(null, "$meta", "GET", null));
+                _schema = new Schema((JObject)ExecuteJson(null, "$meta", "GET", null));
 
             return _schema;
         }
@@ -38,7 +38,7 @@ namespace WastedgeApi
         public async Task<Schema> GetSchemaAsync()
         {
             if (_schema == null)
-                _schema = new Schema((JObject)await ExecuteJsonRequestAsync(null, "$meta", "GET", null));
+                _schema = new Schema((JObject)await ExecuteJsonAsync(null, "$meta", "GET", null));
 
             return _schema;
         }
@@ -51,7 +51,7 @@ namespace WastedgeApi
             EntitySchema schema;
             if (!_entities.TryGetValue(name, out schema))
             {
-                schema = new EntitySchema(name, (JObject)ExecuteJsonRequest(name, "$meta", "GET", null));
+                schema = new EntitySchema(name, (JObject)ExecuteJson(name, "$meta", "GET", null));
                 _entities.Add(name, schema);
             }
 
@@ -66,296 +66,123 @@ namespace WastedgeApi
             EntitySchema schema;
             if (!_entities.TryGetValue(name, out schema))
             {
-                schema = new EntitySchema(name, (JObject)await ExecuteJsonRequestAsync(name, "$meta", "GET", null));
+                schema = new EntitySchema(name, (JObject)await ExecuteJsonAsync(name, "$meta", "GET", null));
                 _entities[name] = schema;
             }
 
             return schema;
         }
 
-        public ResultSet Query(EntitySchema entity, IEnumerable<Filter> filters)
+        public ApiQuery CreateQuery(EntitySchema entity)
         {
-            return Query(entity, filters, null, null);
+            return new ApiQuery(this, entity);
         }
 
-        public ResultSet Query(EntitySchema entity, IEnumerable<Filter> filters, int? offset, int? count)
+        public ApiUpdate CreateCreate(EntitySchema entity)
         {
-            var parameters = BuildQueryParameters(filters, offset, count, OutputFormat.Compact);
-
-            return new ResultSet(entity, (JObject)ExecuteJsonRequest(entity.Name, parameters.Parameters, "GET", null), new ApiPager(this, entity, parameters.BaseParameters));
+            return new ApiUpdate(this, entity, null, ApiUpdateMode.Create);
         }
 
-        public async Task<ResultSet> QueryAsync(EntitySchema entity, IEnumerable<Filter> filters)
+        public ApiUpdate CreateCreate(EntitySchema entity, RecordSet records)
         {
-            return await QueryAsync(entity, filters, null, null);
+            return new ApiUpdate(this, entity, records, ApiUpdateMode.Create);
         }
 
-        public async Task<ResultSet> QueryAsync(EntitySchema entity, IEnumerable<Filter> filters, int? offset, int? count)
+        public ApiUpdate CreateUpdate(EntitySchema entity)
         {
-            var parameters = BuildQueryParameters(filters, offset, count, OutputFormat.Compact);
-
-            return new ResultSet(entity, (JObject)await ExecuteJsonRequestAsync(entity.Name, parameters.Parameters, "GET", null), new ApiPager(this, entity, parameters.BaseParameters));
+            return new ApiUpdate(this, entity, null, ApiUpdateMode.Update);
         }
 
-        public async Task<List<string>> CreateAsync(EntitySchema entity, RecordSet recordSet)
+        public ApiUpdate CreateUpdate(EntitySchema entity, RecordSet records)
         {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
-            if (recordSet == null)
-                throw new ArgumentNullException(nameof(recordSet));
-
-            if (recordSet.Count == 0)
-                return new List<string>();
-
-            var response = (JObject)await ExecuteJsonRequestAsync(entity.Name, null, "PUT", recordSet.ToJson());
-
-            return ((JArray)response["result"]).Select(p => (string)p).ToList();
+            return new ApiUpdate(this, entity, records, ApiUpdateMode.Update);
         }
 
-        public async Task<List<string>> UpdateAsync(EntitySchema entity, RecordSet recordSet)
+        public ApiDelete CreateDelete(EntitySchema entity)
         {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
-            if (recordSet == null)
-                throw new ArgumentNullException(nameof(recordSet));
-
-            if (recordSet.Count == 0)
-                return new List<string>();
-
-            var response = (JObject)await ExecuteJsonRequestAsync(entity.Name, null, "POST", recordSet.ToJson());
-
-            return ((JArray)response["result"]).Select(p => (string)p).ToList();
+            return new ApiDelete(this, entity, null);
         }
 
-        public async Task DeleteAsync(EntitySchema entity, IList<string> ids)
+        public ApiDelete CreateDelete(EntitySchema entity, IEnumerable<string> ids)
         {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
-            if (ids == null)
-                throw new ArgumentNullException(nameof(ids));
-
-            if (ids.Count == 0)
-                return;
-
-            string path = entity.Name + "/" + String.Join(",", ids);
-
-            await ExecuteJsonRequestAsync(path, null, "DELETE", null);
+            return new ApiDelete(this, entity, ids);
         }
 
-        private QueryParameters BuildQueryParameters(IEnumerable<Filter> filters, int? offset, int? count, OutputFormat outputFormat)
+        internal JToken ExecuteJson(string path, string parameters, string method, JToken request)
         {
-            var sb = new StringBuilder();
-
-            foreach (var filter in filters)
-            {
-                if (sb.Length > 0)
-                    sb.Append('&');
-
-                sb.Append(Uri.EscapeDataString(filter.Field.Name)).Append('=');
-
-                switch (filter.Type)
+            return Execute(
+                path,
+                parameters,
+                method,
+                p =>
                 {
-                    case FilterType.IsNull:
-                        sb.Append("is.null");
-                        break;
-                    case FilterType.NotIsNull:
-                        sb.Append("not.is.null");
-                        break;
-                    case FilterType.IsTrue:
-                        sb.Append("is.true");
-                        break;
-                    case FilterType.NotIsTrue:
-                        sb.Append("not.is.true");
-                        break;
-                    case FilterType.IsFalse:
-                        sb.Append("is.false");
-                        break;
-                    case FilterType.NotIsFalse:
-                        sb.Append("not.is.false");
-                        break;
-                    case FilterType.In:
-                        sb.Append("in.");
-                        AppendList(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.NotIn:
-                        sb.Append("not.in.");
-                        AppendList(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.Like:
-                        sb.Append("like.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.NotLike:
-                        sb.Append("not.like.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.Equal:
-                        sb.Append("eq.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.NotEqual:
-                        sb.Append("ne.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.GreaterThan:
-                        sb.Append("gt.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.GreaterEqual:
-                        sb.Append("gte.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.LessThan:
-                        sb.Append("lt.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    case FilterType.LessEqual:
-                        sb.Append("lte.");
-                        Append(sb, filter.Value, filter.Field.DataType);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
-
-            switch (outputFormat)
-            {
-                case OutputFormat.Verbose:
-                    if (sb.Length > 0)
-                        sb.Append('&');
-                    sb.Append("$output=verbose");
-                    break;
-                case OutputFormat.Compact:
-                    if (sb.Length > 0)
-                        sb.Append('&');
-                    sb.Append("$output=compact");
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(outputFormat), outputFormat, null);
-            }
-
-            string baseParameters = sb.ToString();
-
-            if (offset.HasValue)
-            {
-                if (sb.Length > 0)
-                    sb.Append('&');
-                sb.Append("$offset=").Append(offset.Value);
-            }
-            if (count.HasValue)
-            {
-                if (sb.Length > 0)
-                    sb.Append('&');
-                sb.Append("$count=").Append(count.Value);
-            }
-
-            return new QueryParameters(sb.ToString(), baseParameters);
+                    if (request != null)
+                        p.Write(SerializeJson(request));
+                },
+                p => ParseJson(p.ReadToEnd())
+            );
         }
 
-        internal ResultSet QueryNext(ApiPager pager, string start, int? count)
+        internal async Task<JToken> ExecuteJsonAsync(string path, string parameters, string method, JToken request)
         {
-            if (pager == null)
-                throw new ArgumentNullException(nameof(pager));
-            if (start == null)
-                throw new ArgumentNullException(nameof(start));
-
-            var parameters = BuildNextParameters(pager, start, count);
-
-            return new ResultSet(pager.Entity, (JObject)ExecuteJsonRequest(pager.Entity.Name, parameters, "GET", null), pager);
-        }
-
-        internal async Task<ResultSet> QueryNextAsync(ApiPager pager, string start, int? count)
-        {
-            if (pager == null)
-                throw new ArgumentNullException(nameof(pager));
-            if (start == null)
-                throw new ArgumentNullException(nameof(start));
-
-            var parameters = BuildNextParameters(pager, start, count);
-
-            return new ResultSet(pager.Entity, (JObject)await ExecuteJsonRequestAsync(pager.Entity.Name, parameters, "GET", null), pager);
-        }
-
-        private static string BuildNextParameters(ApiPager pager, string start, int? count)
-        {
-            var sb = new StringBuilder(pager.Parameters);
-            if (sb.Length > 0)
-                sb.Append('&');
-            sb.Append("$start=").Append(Uri.EscapeDataString(start));
-            if (count.HasValue)
-                sb.Append("&$count=").Append(count.Value);
-            return sb.ToString();
-        }
-
-        private void AppendList(StringBuilder sb, object value, EntityDataType dataType)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void Append(StringBuilder sb, object value, EntityDataType dataType)
-        {
-            sb.Append(Uri.EscapeDataString(Serialize(value, dataType)));
-        }
-
-        private string Serialize(object value, EntityDataType dataType)
-        {
-            if (value == null)
-                return "";
-            if (value is string)
-                return (string)value;
-            if (value is DateTime)
-            {
-                switch (dataType)
+            return await ExecuteAsync(
+                path,
+                parameters,
+                method,
+                async p =>
                 {
-                    case EntityDataType.Date:
-                        return ApiUtils.PrintDate((DateTime)value);
-                    case EntityDataType.DateTime:
-                        return ApiUtils.PrintDateTime((DateTime)value);
-                    case EntityDataType.DateTimeTz:
-                        return ApiUtils.PrintDateTimeOffset((DateTime)value);
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(value));
-                }
-            }
-            if (value is DateTimeOffset)
-            {
-                switch (dataType)
-                {
-                    case EntityDataType.Date:
-                        return ApiUtils.PrintDate((DateTimeOffset)value);
-                    case EntityDataType.DateTime:
-                        return ApiUtils.PrintDateTime((DateTimeOffset)value);
-                    case EntityDataType.DateTimeTz:
-                        return ApiUtils.PrintDateTimeOffset((DateTimeOffset)value);
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(value));
-                }
-            }
-            if (value is int)
-                return ((int)value).ToString(CultureInfo.InvariantCulture);
-            if (value is long)
-                return ((long)value).ToString(CultureInfo.InvariantCulture);
-            if (value is float)
-                return ((float)value).ToString(CultureInfo.InvariantCulture);
-            if (value is double)
-                return ((double)value).ToString(CultureInfo.InvariantCulture);
-            if (value is decimal)
-                return ((decimal)value).ToString(CultureInfo.InvariantCulture);
-
-            throw new ArgumentOutOfRangeException(nameof(value));
+                    if (request != null)
+                        await p.WriteAsync(SerializeJson(request));
+                },
+                async p => ParseJson(await p.ReadToEndAsync())
+            );
         }
 
-        private JToken ExecuteJsonRequest(string path, string parameters, string method, JToken request)
+        public string ExecuteRaw(string path, string parameters, string method, string request)
         {
+            return Execute(
+                path,
+                parameters,
+                method,
+                p =>
+                {
+                    if (request != null)
+                        p.Write(request);
+                },
+                p => p.ReadToEnd()
+            );
+        }
+
+        internal async Task<string> ExecuteRawAsync(string path, string parameters, string method, string request)
+        {
+            return await ExecuteAsync(
+                path,
+                parameters,
+                method,
+                async p =>
+                {
+                    if (request != null)
+                        await p.WriteAsync(request);
+                },
+                async p => await p.ReadToEndAsync()
+            );
+        }
+
+        internal T Execute<T>(string path, string parameters, string method, Action<StreamWriter> requestWriter, Func<StreamReader, T> responseReader)
+        {
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+
             var webRequest = BuildRequest(path, parameters, method);
 
-            if (request != null)
+            // TODO: Once we support property verbs, this needs to exclude DELETE too.
+
+            if (method != "GET")
             {
                 using (var stream = webRequest.GetRequestStream())
                 using (var writer = new StreamWriter(stream))
-                using (var json = new JsonTextWriter(writer))
                 {
-                    request.WriteTo(json);
+                    requestWriter(writer);
                 }
             }
 
@@ -365,7 +192,7 @@ namespace WastedgeApi
                 using (var stream = GetResponseStream(response))
                 using (var reader = new StreamReader(stream))
                 {
-                    return ParseJson(reader.ReadToEnd());
+                    return responseReader(reader);
                 }
             }
             catch (WebException ex)
@@ -374,27 +201,26 @@ namespace WastedgeApi
                 using (var stream = GetResponseStream(response))
                 using (var reader = new StreamReader(stream))
                 {
-                    throw new ApiException(reader.ReadToEnd());
+                    throw ParseErrors(ex, reader.ReadToEnd());
                 }
             }
         }
 
-        private async Task<JToken> ExecuteJsonRequestAsync(string path, string parameters, string method, JToken request)
+        internal async Task<T> ExecuteAsync<T>(string path, string parameters, string method, Func<StreamWriter, Task> requestWriter, Func<StreamReader, Task<T>> responseReader)
         {
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+
             var webRequest = BuildRequest(path, parameters, method);
 
-            if (request != null || method != "GET")
+            // TODO: Once we support property verbs, this needs to exclude DELETE too.
+
+            if (method != "GET")
             {
-                using (var stream = await webRequest.GetRequestStreamAsync())
+                using (var stream = webRequest.GetRequestStream())
                 using (var writer = new StreamWriter(stream))
                 {
-                    if (request != null)
-                    {
-                        using (var json = new JsonTextWriter(writer))
-                        {
-                            request.WriteTo(json);
-                        }
-                    }
+                    await requestWriter(writer);
                 }
             }
 
@@ -404,7 +230,7 @@ namespace WastedgeApi
                 using (var stream = GetResponseStream(response))
                 using (var reader = new StreamReader(stream))
                 {
-                    return ParseJson(await reader.ReadToEndAsync());
+                    return await responseReader(reader);
                 }
             }
             catch (WebException ex)
@@ -413,9 +239,52 @@ namespace WastedgeApi
                 using (var stream = GetResponseStream(response))
                 using (var reader = new StreamReader(stream))
                 {
-                    throw new ApiException(reader.ReadToEnd());
+                    throw ParseErrors(ex, await reader.ReadToEndAsync());
                 }
             }
+        }
+
+        private Exception ParseErrors(WebException exception, string error)
+        {
+            JObject obj = null;
+
+            try
+            {
+                obj = (JObject)JToken.Parse(error);
+            }
+            catch
+            {
+                // If we cannot parse the error response, we're just rethrowing the
+                // original exception.
+
+                return exception;
+            }
+
+            // First check whether it's a simple response.
+
+            if (obj["message"] != null)
+            {
+                var message = obj["message"];
+
+                if (message.Type == JTokenType.String)
+                    return new ApiException((string)message, exception);
+
+                if (message.Type == JTokenType.Array)
+                    return new ApiException((string)((JArray)message)[0], exception);
+
+                // If we can't make sense of the response, throw the original exception.
+
+                return exception;
+            }
+
+            // Next, see whether we got an error collection.
+
+            if (obj["errors"] != null && obj["errors"].Type == JTokenType.Array)
+                return new ApiException("Validation failed", exception, ApiRowErrorsCollection.FromJson((JArray)obj["errors"]));
+
+            // If all else fails, rethrow the original exception.
+
+            return exception;
         }
 
         private Stream GetResponseStream(WebResponse response)
@@ -438,6 +307,19 @@ namespace WastedgeApi
                 json.FloatParseHandling = FloatParseHandling.Decimal;
 
                 return JToken.ReadFrom(json);
+            }
+        }
+
+        private string SerializeJson(JToken input)
+        {
+            using (var writer = new StringWriter())
+            {
+                using (var json = new JsonTextWriter(writer))
+                {
+                    input.WriteTo(json);
+                }
+
+                return writer.GetStringBuilder().ToString();
             }
         }
 
@@ -476,39 +358,6 @@ namespace WastedgeApi
             webRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(authorization));
 
             return webRequest;
-        }
-
-        public string ExecuteRaw(string path, string parameters, string method, string request)
-        {
-            var webRequest = BuildRequest(path, parameters, method);
-
-            if (request != null)
-            {
-                using (var stream = webRequest.GetRequestStream())
-                using (var writer = new StreamWriter(stream))
-                {
-                    writer.Write(request);
-                }
-            }
-
-            using (var response = webRequest.GetResponse())
-            using (var stream = GetResponseStream(response))
-            using (var reader = new StreamReader(stream))
-            {
-                return reader.ReadToEnd();
-            }
-        }
-
-        private class QueryParameters
-        {
-            public string Parameters { get; }
-            public string BaseParameters { get; }
-
-            public QueryParameters(string parameters, string baseParameters)
-            {
-                Parameters = parameters;
-                BaseParameters = baseParameters;
-            }
         }
     }
 }
