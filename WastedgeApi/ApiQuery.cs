@@ -103,6 +103,15 @@ namespace WastedgeApi
             {
                 sb.Append('&').Append(Uri.EscapeDataString(filter.Field.Name)).Append('=');
 
+                if (filter.Field is EntityIdField)
+                {
+                    if (filter.Type != FilterType.Equal)
+                        throw new ApiException("ID field can only be compared equal");
+
+                    Append(sb, filter.Value, filter.Field.DataType);
+                    continue;
+                }
+
                 switch (filter.Type)
                 {
                     case FilterType.IsNull:
