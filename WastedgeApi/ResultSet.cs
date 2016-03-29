@@ -22,7 +22,7 @@ namespace WastedgeApi
 
         public object this[string index] => this[_fieldsByName[index]];
 
-        public object this[EntityPhysicalField index] => this[_fieldsByField[index]];
+        public object this[EntityTypedField index] => this[_fieldsByField[index]];
 
         public int FieldCount => _fields.Count;
 
