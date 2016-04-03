@@ -3,12 +3,16 @@
   <metadata>
     <id>$id$</id>
     <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
-    <projectUrl>http://www.wastedge.com</projectUrl>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
+    <title>Wastedge API for .NET</title>
+    <authors>Wastedge International B.V.</authors>
+    <owners>Wastedge International B.V.</owners>
+    <projectUrl>https://github.com/wastedge/weapi-net</projectUrl>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <iconUrl>https://raw.githubusercontent.com/wastedge/weapi-net/master/logo.png</iconUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>
+        Wastedge API for .NET.
+    </description>
     <copyright>Wastedge International B.V. &#169; 2016</copyright>
   </metadata>
 </package>
