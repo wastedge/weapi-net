@@ -20,6 +20,8 @@ namespace WastedgeApi
             }
         }
 
+        public string CallStack { get; }
+
         public ApiException()
         {
         }
@@ -32,6 +34,12 @@ namespace WastedgeApi
         public ApiException(string message, Exception innerException)
             : base(message, innerException)
         {
+        }
+
+        public ApiException(string message, string callStack, Exception innerException)
+            : base(message, innerException)
+        {
+            CallStack = callStack;
         }
 
         public ApiException(ApiRowErrorsCollection errors)
