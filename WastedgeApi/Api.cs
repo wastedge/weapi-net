@@ -153,7 +153,7 @@ namespace WastedgeApi
             );
         }
 
-        internal async Task<string> ExecuteRawAsync(string path, string parameters, string method, string request)
+        public async Task<string> ExecuteRawAsync(string path, string parameters, string method, string request)
         {
             return await ExecuteAsync(
                 path,
