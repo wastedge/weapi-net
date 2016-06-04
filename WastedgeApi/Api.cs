@@ -30,7 +30,7 @@ namespace WastedgeApi
         public Schema GetSchema()
         {
             if (_schema == null)
-                _schema = new Schema((JObject)ExecuteJson(null, "$meta", "GET", null));
+                _schema = LoadSchema((JObject)ExecuteJson(null, "$meta", "GET", null));
 
             return _schema;
         }
@@ -38,9 +38,36 @@ namespace WastedgeApi
         public async Task<Schema> GetSchemaAsync()
         {
             if (_schema == null)
-                _schema = new Schema((JObject)await ExecuteJsonAsync(null, "$meta", "GET", null));
+                _schema = LoadSchema((JObject)await ExecuteJsonAsync(null, "$meta", "GET", null));
 
             return _schema;
+        }
+
+        private Schema LoadSchema(JObject json)
+        {
+            return new Schema(json["entities"].Select(p => (string)p).ToList());
+        }
+
+        public void CacheFullEntitySchema()
+        {
+            LoadFullEntitySchema((JObject)ExecuteJson(null, "$meta=all", "GET", null));
+        }
+
+        public async Task CacheFullEntitySchemaAsync()
+        {
+            LoadFullEntitySchema((JObject)await ExecuteJsonAsync(null, "$meta=all", "GET", null));
+        }
+
+        private void LoadFullEntitySchema(JObject schema)
+        {
+            if (_schema == null)
+                _schema = new Schema(((JObject)schema["entities"]).Properties().Select(p => p.Name).ToList());
+
+            foreach (var property in ((JObject)schema["entities"]).Properties())
+            {
+                if (!_entities.ContainsKey(property.Name))
+                    _entities.Add(property.Name, new EntitySchema(property.Name, (JObject)property.Value));
+            }
         }
 
         public EntitySchema GetEntitySchema(string name)

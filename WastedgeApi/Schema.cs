@@ -11,14 +11,12 @@ namespace WastedgeApi
     {
         public IList<string> Entities { get; }
 
-        internal Schema(JObject schema)
+        internal Schema(IList<string> entities)
         {
-            if (schema == null)
-                throw new ArgumentNullException(nameof(schema));
+            if (entities == null)
+                throw new ArgumentNullException(nameof(entities));
 
-            Entities = new ReadOnlyCollection<string>(
-                schema["entities"].Select(p => (string)p).ToList()
-            );
+            Entities = new ReadOnlyCollection<string>(entities);
         }
     }
 }
