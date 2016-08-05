@@ -224,6 +224,9 @@ namespace WastedgeApi
             }
             catch (WebException ex)
             {
+                if (ex.Response == null)
+                    throw;
+
                 using (var response = ex.Response)
                 using (var stream = GetResponseStream(response))
                 using (var reader = new StreamReader(stream))
@@ -262,6 +265,9 @@ namespace WastedgeApi
             }
             catch (WebException ex)
             {
+                if (ex.Response == null)
+                    throw;
+
                 using (var response = ex.Response)
                 using (var stream = GetResponseStream(response))
                 using (var reader = new StreamReader(stream))
@@ -273,7 +279,7 @@ namespace WastedgeApi
 
         private Exception ParseErrors(WebException exception, string error)
         {
-            JObject obj = null;
+            JObject obj;
 
             try
             {
