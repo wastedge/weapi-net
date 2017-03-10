@@ -302,7 +302,7 @@ namespace WastedgeApi
                 if (message.Type == JTokenType.String)
                     return new ApiException((string)message, (string)obj["call_stack"], exception);
 
-                if (message.Type == JTokenType.Array)
+                if (message.Type == JTokenType.Array && message.Count() > 0)
                     return new ApiException((string)((JArray)message)[0], (string)obj["call_stack"], exception);
 
                 // If we can't make sense of the response, throw the original exception.
