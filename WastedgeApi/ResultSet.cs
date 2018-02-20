@@ -20,7 +20,16 @@ namespace WastedgeApi
 
         public object this[int index] => _row[index];
 
-        public object this[string index] => this[_fieldsByName[index]];
+        public object this[string index]
+        {
+            get
+            {
+                if (!_fieldsByName.ContainsKey(index))
+                    throw new KeyNotFoundException(string.Format("Key not found (\"{0}\")", index));
+
+                return this[_fieldsByName[index]];
+            }
+        }
 
         public object this[EntityTypedField index] => this[_fieldsByField[index]];
 

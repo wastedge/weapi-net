@@ -23,6 +23,11 @@ namespace WastedgeApi
         public QueryOrderCollection Order { get; }
         public OutputFormat Output { get; set; }
 
+        /// <summary>
+        /// Specify the names of the fields that should be returned.
+        /// </summary>
+        public string Display { get; set; }
+
         internal ApiQuery(Api api, EntitySchema entity)
         {
             if (api == null)
@@ -195,6 +200,8 @@ namespace WastedgeApi
                 sb.Append("&$count=").Append(Count.Value);
             if (Start != null)
                 sb.Append("&$start=").Append(Uri.EscapeDataString(Start));
+            if (!string.IsNullOrWhiteSpace(Display))
+                sb.Append("&$display=").Append(Uri.EscapeDataString(Display));
 
             return sb.ToString();
         }
