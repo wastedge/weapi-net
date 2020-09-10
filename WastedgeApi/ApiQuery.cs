@@ -74,18 +74,18 @@ namespace WastedgeApi
 
         public ResultSet ExecuteReader()
         {
-            if (Output != OutputFormat.Compact)
-                throw new ApiException("Output format must be compact");
+            //if (Output != OutputFormat.Compact)
+            //    throw new ApiException("Output format must be compact");
 
-            return new ResultSet(Entity, ExecuteJson());
+            return new ResultSet(Entity, ExecuteJson(), Output);
         }
 
         public async Task<ResultSet> ExecuteReaderAsync()
         {
-            if (Output != OutputFormat.Compact)
-                throw new ApiException("Output format must be compact");
+            //if (Output != OutputFormat.Compact)
+            //    throw new ApiException("Output format must be compact");
 
-            return new ResultSet(Entity, await ExecuteJsonAsync());
+            return new ResultSet(Entity, await ExecuteJsonAsync(), Output);
         }
 
         private string BuildQueryParameters()

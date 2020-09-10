@@ -41,7 +41,7 @@ namespace WastedgeApi
 
         public string NextResult { get; }
 
-        internal ResultSet(EntitySchema entity, JObject results)
+        internal ResultSet(EntitySchema entity, JObject results, OutputFormat outputFormat)
         {
             if (entity == null)
                 throw new ArgumentNullException(nameof(entity));
@@ -56,39 +56,86 @@ namespace WastedgeApi
             NextResult = (string)results["next_result"];
 
             var resultArray = (JArray)results["result"];
-            var headers = (JArray)resultArray[0];
-
-            _fields = headers.Select(p => (EntityTypedField)entity.Members[(string)p]).ToList();
-            _fieldsByName = _fields.ToDictionary(p => p.Name, p => _fields.IndexOf(p));
-            _fieldsByField = _fields.ToDictionary(p => p, p => _fields.IndexOf(p));
-
-            _rows = new List<object[]>(resultArray.Count - 1);
-
-            for (int i = 1; i < resultArray.Count; i++)
+            if (outputFormat == OutputFormat.Compact)
             {
-                var resultRow = (JArray)resultArray[i];
-                var row = new object[resultRow.Count];
-                _rows.Add(row);
+                // Parse compact output format, the field names are in the first item in the array
+                var headers = (JArray)resultArray[0];
+                _fields = headers.Select(p => (EntityTypedField)entity.Members[(string)p]).ToList();
 
-                for (int j = 0; j < resultRow.Count; j++)
+                _rows = new List<object[]>(resultArray.Count - 1);
+                for (int i = 1; i < resultArray.Count; i++)
                 {
-                    var value = ((JValue)resultRow[j]).Value;
-                    switch (_fields[j].DataType)
+                    var resultRow = (JArray)resultArray[i];
+                    var row = new object[resultRow.Count];
+                    _rows.Add(row);
+
+                    for (int j = 0; j < resultRow.Count; j++)
                     {
-                        case EntityDataType.Date:
-                            value = ApiUtils.ParseDate((string)value);
-                            break;
-                        case EntityDataType.DateTime:
-                            value = ApiUtils.ParseDateTime((string)value);
-                            break;
-                        case EntityDataType.DateTimeTz:
-                            value = ApiUtils.ParseDateTimeOffset((string)value);
-                            break;
+                        var value = ((JValue)resultRow[j]).Value;
+                        row[j] = this.ParseData(_fields[j].DataType, value);
                     }
-                    row[j] = value;
                 }
             }
+            else
+            {
+                // Parse normal / verbose output format, field names are in each element
+                _rows = new List<object[]>(resultArray.Count);
+                for (int i = 0; i < resultArray.Count; i++)
+                {
+                    var resultRow = (JObject)resultArray[i];
+                    if (i == 0)
+                    {
+                        // Get field names from the first item
+                        var headers = new List<string>();
+                        foreach (var property in resultRow)
+                        {
+                            headers.Add(property.Key);
+                        }
+                        _fields = headers.Select(p => (EntityTypedField)entity.Members[(string)p]).ToList();
+                    }
+                    var row = new object[resultRow.Count];
+                    _rows.Add(row);
+
+                    int j = 0;
+                    foreach (var property in resultRow)
+                    {
+                        var field = entity.Members[property.Key] as EntityTypedField;
+                        if (field == null) { continue; }
+                        if (property.Value is JValue)
+                        {
+                            var value = ((JValue)property.Value).Value;
+                            row[j] = this.ParseData(field.DataType, value);
+                        }
+                        else
+                        {
+                            row[j] = property.Value.ToString();
+                        }
+
+                        j++;
+                    }
+                }
+            }
+
+            if (_fields != null)
+            {
+                _fieldsByName = _fields.ToDictionary(p => p.Name, p => _fields.IndexOf(p));
+                _fieldsByField = _fields.ToDictionary(p => p, p => _fields.IndexOf(p));
+            }
         }
+
+        object ParseData(EntityDataType dataType, object value) {
+            switch (dataType)
+            {
+                case EntityDataType.Date:
+                    return ApiUtils.ParseDate((string)value);
+                case EntityDataType.DateTime:
+                    return ApiUtils.ParseDateTime((string)value);
+                case EntityDataType.DateTimeTz:
+                    return ApiUtils.ParseDateTimeOffset((string)value);
+            }
+            return value;
+        }
+
 
         public void Reset()
         {
